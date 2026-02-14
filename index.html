@@ -4,456 +4,480 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AppSpace Database Architecture</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .animate-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
 </head>
 <body>
-    <div id="root"></div>
+    <div id="app" class="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-8"></div>
     
-    <script type="text/babel">
-        const { Database, Users, FileText, MessageSquare, Tag, Shield, Bell, Layout, BarChart3, Settings, Calendar, Search, ChevronRight, Share2 } = lucide;
-
-        const DatabaseInfographic = () => {
-          const [selectedConcept, setSelectedConcept] = React.useState(null);
-          const [searchTerm, setSearchTerm] = React.useState('');
-          const [highlightedTable, setHighlightedTable] = React.useState(null);
-
-          const businessConcepts = {
+    <script>
+        const businessConcepts = {
             'Content & Publishing': {
-              icon: FileText,
-              color: '#0ea5e9',
-              gradient: 'from-sky-400 to-blue-500',
-              schemas: {
-                'dbo': [
-                  'Activity', 'ActivityTranslation', 'ActivityVersion', 'ActivityMessageContent',
-                  'ActivityMetadataProperty', 'ActivityImageCropping', 'CommunicationPageDetail',
-                  'CommunicationPageAuthor', 'CommunicationPageChannel', 'ExtendedIdeaDetail',
-                  'ExtendedIdeaTeamMember', 'ShareDetail', 'ShareAppDetail', 'TranslationSkeleton'
-                ],
-                'ContentStorage': ['EditorialBlogPostVersion']
-              },
-              sharepoint: {
-                content: 'SharePoint Lists & Libraries',
-                location: 'ActivityTranslation stores ListGuid and ItemId referencing SharePoint items',
-                references: 'ActivityTranslation.ListGuid → SharePoint List GUID, ActivityTranslation.ItemId → SharePoint Item ID'
-              }
+                icon: '📄',
+                color: '#0ea5e9',
+                gradient: 'from-sky-400 to-blue-500',
+                schemas: {
+                    'dbo': [
+                        'Activity', 'ActivityTranslation', 'ActivityVersion', 'ActivityMessageContent',
+                        'ActivityMetadataProperty', 'ActivityImageCropping', 'CommunicationPageDetail',
+                        'CommunicationPageAuthor', 'CommunicationPageChannel', 'ExtendedIdeaDetail',
+                        'ExtendedIdeaTeamMember', 'ShareDetail', 'ShareAppDetail', 'TranslationSkeleton'
+                    ],
+                    'ContentStorage': ['EditorialBlogPostVersion']
+                },
+                sharepoint: {
+                    content: 'SharePoint Lists & Libraries',
+                    location: 'ActivityTranslation stores ListGuid and ItemId referencing SharePoint items',
+                    references: 'ActivityTranslation.ListGuid → SharePoint List GUID, ActivityTranslation.ItemId → SharePoint Item ID'
+                }
             },
             'User Management & Access': {
-              icon: Users,
-              color: '#8b5cf6',
-              gradient: 'from-violet-400 to-purple-500',
-              schemas: {
-                'dbo': [
-                  'User', 'UserSkills', 'UserEndorsements', 'UserDomainGroup', 'UserDynamicProperty',
-                  'UserFollower', 'UserPropertyBag', 'UserSection', 'UserFollowedHashTag',
-                  'UserFollowedLanguages', 'AccessManagementUser', 'RbacUser', 'UserExternalTask',
-                  'UserGroupContribution'
-                ]
-              }
+                icon: '👥',
+                color: '#8b5cf6',
+                gradient: 'from-violet-400 to-purple-500',
+                schemas: {
+                    'dbo': [
+                        'User', 'UserSkills', 'UserEndorsements', 'UserDomainGroup', 'UserDynamicProperty',
+                        'UserFollower', 'UserPropertyBag', 'UserSection', 'UserFollowedHashTag',
+                        'UserFollowedLanguages', 'AccessManagementUser', 'RbacUser', 'UserExternalTask',
+                        'UserGroupContribution'
+                    ]
+                }
             },
             'Groups & Communities': {
-              icon: Users,
-              color: '#10b981',
-              gradient: 'from-emerald-400 to-green-500',
-              schemas: {
-                'dbo': [
-                  'Group', 'GroupAudience', 'GroupDomainGroup', 'GroupFollower', 'GroupInvitation',
-                  'GroupMembershipRequest', 'GroupPage', 'GroupPageTranslation', 'GroupTermset',
-                  'GroupTools', 'GroupTranslation', 'GroupViewer', 'GroupDisplayChannel',
-                  'GroupDisplayPage', 'GroupEmailDigestSubscriber', 'GroupFeed', 'RelatedGroups'
-                ]
-              },
-              sharepoint: {
-                sites: 'SharePoint Site Collections',
-                location: 'Each Group is linked to a SharePoint site collection',
-                references: 'Group.SiteCollection_id → SiteCollection table → SharePoint Site URL'
-              }
+                icon: '🏢',
+                color: '#10b981',
+                gradient: 'from-emerald-400 to-green-500',
+                schemas: {
+                    'dbo': [
+                        'Group', 'GroupAudience', 'GroupDomainGroup', 'GroupFollower', 'GroupInvitation',
+                        'GroupMembershipRequest', 'GroupPage', 'GroupPageTranslation', 'GroupTermset',
+                        'GroupTools', 'GroupTranslation', 'GroupViewer', 'GroupDisplayChannel',
+                        'GroupDisplayPage', 'GroupEmailDigestSubscriber', 'GroupFeed', 'RelatedGroups'
+                    ]
+                },
+                sharepoint: {
+                    sites: 'SharePoint Site Collections',
+                    location: 'Each Group is linked to a SharePoint site collection',
+                    references: 'Group.SiteCollection_id → SiteCollection table → SharePoint Site URL'
+                }
             },
             'Social & Engagement': {
-              icon: MessageSquare,
-              color: '#f97316',
-              gradient: 'from-orange-400 to-red-500',
-              schemas: {
-                'dbo': [
-                  'Comment', 'CommentLikes', 'ActivityLikes', 'Praises', 'Bookmarks',
-                  'Followers', 'Mentions', 'ActivityReports', 'ActivityViews',
-                  'ChannelFollow', 'Tags'
-                ]
-              }
+                icon: '💬',
+                color: '#f97316',
+                gradient: 'from-orange-400 to-red-500',
+                schemas: {
+                    'dbo': [
+                        'Comment', 'CommentLikes', 'ActivityLikes', 'Praises', 'Bookmarks',
+                        'Followers', 'Mentions', 'ActivityReports', 'ActivityViews',
+                        'ChannelFollow', 'Tags'
+                    ]
+                }
             },
             'Channels & Distribution': {
-              icon: BarChart3,
-              color: '#ec4899',
-              gradient: 'from-pink-400 to-rose-500',
-              schemas: {
-                'dbo': [
-                  'Channel', 'ChannelCategory', 'ChannelAudience', 'ChannelOwner',
-                  'ChannelDomainGroup', 'ChannelEditor', 'HeroBlock', 'HeroBlockChannel',
-                  'HeroBlockTemplate', 'HeroBlockTranslation', 'HeroTemplate',
-                  'HeroTemplateBlockTemplate', 'HeroWidgetBlockContent'
-                ]
-              }
+                icon: '📊',
+                color: '#ec4899',
+                gradient: 'from-pink-400 to-rose-500',
+                schemas: {
+                    'dbo': [
+                        'Channel', 'ChannelCategory', 'ChannelAudience', 'ChannelOwner',
+                        'ChannelDomainGroup', 'ChannelEditor', 'HeroBlock', 'HeroBlockChannel',
+                        'HeroBlockTemplate', 'HeroBlockTranslation', 'HeroTemplate',
+                        'HeroTemplateBlockTemplate', 'HeroWidgetBlockContent'
+                    ]
+                }
             },
             'Notifications & Alerts': {
-              icon: Bell,
-              color: '#eab308',
-              gradient: 'from-yellow-400 to-amber-500',
-              schemas: {
-                'dbo': [
-                  'Notification', 'UserToNotification', 'FollowedNotification',
-                  'WebhookSubscription', 'WebHookConnector', 'WebHookEvent',
-                  'WebHookPendingNotification', 'WebHookFinishedNotification',
-                  'WebHookConnectorChannel'
-                ]
-              }
+                icon: '🔔',
+                color: '#eab308',
+                gradient: 'from-yellow-400 to-amber-500',
+                schemas: {
+                    'dbo': [
+                        'Notification', 'UserToNotification', 'FollowedNotification',
+                        'WebhookSubscription', 'WebHookConnector', 'WebHookEvent',
+                        'WebHookPendingNotification', 'WebHookFinishedNotification',
+                        'WebHookConnectorChannel'
+                    ]
+                }
             },
             'Taxonomy & Metadata': {
-              icon: Tag,
-              color: '#06b6d4',
-              gradient: 'from-cyan-400 to-teal-500',
-              schemas: {
-                'dbo': [
-                  'HashTag', 'HashTaggedActivity', 'HashtaggedApp', 'HashTaggedGroup',
-                  'Term', 'TermSet', 'ActivityTerm', 'Language'
-                ]
-              }
+                icon: '🏷️',
+                color: '#06b6d4',
+                gradient: 'from-cyan-400 to-teal-500',
+                schemas: {
+                    'dbo': [
+                        'HashTag', 'HashTaggedActivity', 'HashtaggedApp', 'HashTaggedGroup',
+                        'Term', 'TermSet', 'ActivityTerm', 'Language'
+                    ]
+                }
             },
             'Security & Permissions': {
-              icon: Shield,
-              color: '#dc2626',
-              gradient: 'from-red-400 to-rose-600',
-              schemas: {
-                'dbo': [
-                  'Audience', 'AudienceCategory', 'AudienceUser', 'Rule', 'RuleSet',
-                  'RuleDomainGroup', 'RuleUser', 'RuleUserProperty', 'DomainGroup',
-                  'AccessManagementDomainGroup', 'SecuredActivityUser', 'DataClassification'
-                ]
-              }
+                icon: '🛡️',
+                color: '#dc2626',
+                gradient: 'from-red-400 to-rose-600',
+                schemas: {
+                    'dbo': [
+                        'Audience', 'AudienceCategory', 'AudienceUser', 'Rule', 'RuleSet',
+                        'RuleDomainGroup', 'RuleUser', 'RuleUserProperty', 'DomainGroup',
+                        'AccessManagementDomainGroup', 'SecuredActivityUser', 'DataClassification'
+                    ]
+                }
             },
             'Navigation & Layout': {
-              icon: Layout,
-              color: '#6366f1',
-              gradient: 'from-indigo-400 to-blue-600',
-              schemas: {
-                'dbo': [
-                  'Layout', 'LayoutZone', 'PageTemplate', 'ZoneInstance', 'ModuleInstance',
-                  'AllowedModules', 'MenuNode', 'MenuSection', 'MenuItem',
-                  'MenuNodeSection', 'MenuNodeTranslation', 'MenuItemTranslation',
-                  'MenuSectionTranslation', 'MenuSectionMetadataProperty', 'LocalEntityMenuNode'
-                ]
-              },
-              sharepoint: {
-                pages: 'SharePoint Site Pages',
-                location: 'Modern pages stored in Site Pages library, metadata in database',
-                references: 'GroupPage and GroupPageTranslation tables contain page definitions and layouts'
-              }
+                icon: '🧭',
+                color: '#6366f1',
+                gradient: 'from-indigo-400 to-blue-600',
+                schemas: {
+                    'dbo': [
+                        'Layout', 'LayoutZone', 'PageTemplate', 'ZoneInstance', 'ModuleInstance',
+                        'AllowedModules', 'MenuNode', 'MenuSection', 'MenuItem',
+                        'MenuNodeSection', 'MenuNodeTranslation', 'MenuItemTranslation',
+                        'MenuSectionTranslation', 'MenuSectionMetadataProperty', 'LocalEntityMenuNode'
+                    ]
+                },
+                sharepoint: {
+                    pages: 'SharePoint Site Pages',
+                    location: 'Modern pages stored in Site Pages library, metadata in database',
+                    references: 'GroupPage and GroupPageTranslation tables contain page definitions and layouts'
+                }
             },
             'Applications & Apps': {
-              icon: Settings,
-              color: '#14b8a6',
-              gradient: 'from-teal-400 to-cyan-600',
-              schemas: {
-                'dbo': [
-                  'App', 'AppCategory', 'AppCategoryApp', 'AppCategoryTranslation',
-                  'AppResponsible', 'AppScreenshot', 'AppTranslation', 'AppUser'
-                ]
-              }
+                icon: '⚙️',
+                color: '#14b8a6',
+                gradient: 'from-teal-400 to-cyan-600',
+                schemas: {
+                    'dbo': [
+                        'App', 'AppCategory', 'AppCategoryApp', 'AppCategoryTranslation',
+                        'AppResponsible', 'AppScreenshot', 'AppTranslation', 'AppUser'
+                    ]
+                }
             },
             'Organization & Structure': {
-              icon: Database,
-              color: '#a855f7',
-              gradient: 'from-purple-400 to-fuchsia-500',
-              schemas: {
-                'dbo': [
-                  'OrganizationalUnit', 'CorporateTreeNode', 'CorporateTreeNodeTranslation',
-                  'TeamSection', 'TeamSectionTranslation', 'TeamPosition',
-                  'LocalEntity', 'LocalEntityAdmin', 'LocalEntityDomainGroup',
-                  'LocalEntityHeroBlock', 'LocalEntityHeroTemplate', 'LocalEntityMember',
-                  'SiteCollection'
-                ]
-              }
+                icon: '🏗️',
+                color: '#a855f7',
+                gradient: 'from-purple-400 to-fuchsia-500',
+                schemas: {
+                    'dbo': [
+                        'OrganizationalUnit', 'CorporateTreeNode', 'CorporateTreeNodeTranslation',
+                        'TeamSection', 'TeamSectionTranslation', 'TeamPosition',
+                        'LocalEntity', 'LocalEntityAdmin', 'LocalEntityDomainGroup',
+                        'LocalEntityHeroBlock', 'LocalEntityHeroTemplate', 'LocalEntityMember',
+                        'SiteCollection'
+                    ]
+                }
             },
             'Attachments & Files': {
-              icon: FileText,
-              color: '#f59e0b',
-              gradient: 'from-amber-400 to-orange-500',
-              schemas: {
-                'dbo': [
-                  'Attachment', 'DirectoryContent', 'Link'
-                ]
-              },
-              sharepoint: {
-                files: 'Document Libraries in SharePoint Sites',
-                location: 'Each Group has its own SharePoint site with document libraries',
-                references: 'Attachment table stores SharePoint file URLs and metadata'
-              }
+                icon: '📎',
+                color: '#f59e0b',
+                gradient: 'from-amber-400 to-orange-500',
+                schemas: {
+                    'dbo': [
+                        'Attachment', 'DirectoryContent', 'Link'
+                    ]
+                },
+                sharepoint: {
+                    files: 'Document Libraries in SharePoint Sites',
+                    location: 'Each Group has its own SharePoint site with document libraries',
+                    references: 'Attachment table stores SharePoint file URLs and metadata'
+                }
             },
             'Discovery & Search': {
-              icon: Search,
-              color: '#64748b',
-              gradient: 'from-slate-400 to-gray-600',
-              schemas: {
-                'dbo': [
-                  'DiscoveryCard', 'DiscoveryCardConfiguration', 'MyItemsCategory',
-                  'MyItemsCategoryCommunicationPage', 'CommunicationPageAction'
-                ]
-              }
+                icon: '🔍',
+                color: '#64748b',
+                gradient: 'from-slate-400 to-gray-600',
+                schemas: {
+                    'dbo': [
+                        'DiscoveryCard', 'DiscoveryCardConfiguration', 'MyItemsCategory',
+                        'MyItemsCategoryCommunicationPage', 'CommunicationPageAction'
+                    ]
+                }
             },
             'Audit & Monitoring': {
-              icon: Calendar,
-              color: '#78716c',
-              gradient: 'from-stone-400 to-neutral-600',
-              schemas: {
-                'Audit': ['EventLog'],
-                'HangFire': ['Job', 'State', 'JobParameter']
-              }
+                icon: '📅',
+                color: '#78716c',
+                gradient: 'from-stone-400 to-neutral-600',
+                schemas: {
+                    'Audit': ['EventLog'],
+                    'HangFire': ['Job', 'State', 'JobParameter']
+                }
             }
-          };
-
-          const allTables = Object.entries(businessConcepts).flatMap(([concept, data]) =>
-            Object.entries(data.schemas).flatMap(([schema, tables]) =>
-              tables.map(table => ({ concept, schema, table, color: data.color }))
-            )
-          );
-
-          const filteredTables = searchTerm
-            ? allTables.filter(item =>
-                item.table.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                item.concept.toLowerCase().includes(searchTerm.toLowerCase())
-              )
-            : [];
-
-          const getTableCount = (schemas) => {
-            return Object.values(schemas).reduce((sum, tables) => sum + tables.length, 0);
-          };
-
-          return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-8">
-              <div className="max-w-7xl mx-auto mb-12">
-                <div className="text-center mb-8">
-                  <h1 className="text-6xl font-bold text-white mb-4 tracking-tight">
-                    AppSpace Intranet Database Architecture
-                  </h1>
-                </div>
-
-                <div className="max-w-md mx-auto relative">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                  <input
-                    type="text"
-                    placeholder="Search tables or concepts..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
-                  />
-                </div>
-
-                {searchTerm && (
-                  <div className="mt-4 max-w-md mx-auto bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-4 max-h-96 overflow-y-auto">
-                    {filteredTables.length > 0 ? (
-                      <div className="space-y-2">
-                        {filteredTables.map((item, idx) => (
-                          <div
-                            key={idx}
-                            className="flex items-center justify-between p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
-                            onClick={() => {
-                              setSelectedConcept(item.concept);
-                              setHighlightedTable(`${item.schema}.${item.table}`);
-                              setSearchTerm('');
-                              setTimeout(() => {
-                                const element = document.getElementById(`concept-${item.concept}`);
-                                if (element) {
-                                  element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                }
-                              }, 100);
-                            }}
-                          >
-                            <div>
-                              <div className="text-white font-medium">{item.schema}.{item.table}</div>
-                              <div className="text-sm text-slate-400">{item.concept}</div>
-                            </div>
-                            <ChevronRight className="text-slate-400 w-5 h-5" />
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center text-slate-400 py-4">No tables found</div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div className="max-w-7xl mx-auto">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {Object.entries(businessConcepts).map(([concept, data]) => {
-                    const Icon = data.icon;
-                    const tableCount = getTableCount(data.schemas);
-                    const isSelected = selectedConcept === concept;
-
-                    return (
-                      <div
-                        key={concept}
-                        id={`concept-${concept}`}
-                        onClick={() => {
-                          setSelectedConcept(isSelected ? null : concept);
-                          setHighlightedTable(null);
-                        }}
-                        className={`group relative bg-gradient-to-br ${data.gradient} p-[2px] rounded-2xl cursor-pointer transform transition-all duration-300 hover:scale-105 ${
-                          isSelected ? 'scale-105 shadow-2xl' : 'hover:shadow-xl'
-                        }`}
-                      >
-                        <div className="bg-slate-900 rounded-2xl p-6 h-full relative overflow-hidden">
-                          <div className="absolute inset-0 opacity-5">
-                            <div className="absolute inset-0" style={{
-                              backgroundImage: `radial-gradient(circle at 2px 2px, ${data.color} 1px, transparent 0)`,
-                              backgroundSize: '32px 32px'
-                            }} />
-                          </div>
-
-                          <div className="relative z-10">
-                            <div className="flex items-start justify-between mb-4">
-                              <div className="flex items-center gap-2">
-                                <div className={`p-3 bg-gradient-to-br ${data.gradient} rounded-xl`}>
-                                  <Icon className="w-6 h-6 text-white" />
-                                </div>
-                                {data.sharepoint && (
-                                  <div className="p-1.5 bg-green-500/20 border border-green-500/30 rounded-lg" title="SharePoint Integration">
-                                    <Share2 className="w-4 h-4 text-green-400" />
-                                  </div>
-                                )}
-                              </div>
-                              <div className={`px-3 py-1 rounded-full text-sm font-bold ${
-                                isSelected ? 'bg-white text-slate-900' : 'bg-white/10 text-white'
-                              }`}>
-                                {tableCount} tables
-                              </div>
-                            </div>
-
-                            <h3 className="text-xl font-bold text-white mb-3">{concept}</h3>
-
-                            <div className="space-y-2">
-                              {Object.entries(data.schemas).map(([schema, tables]) => (
-                                <div key={schema} className="text-sm">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <Database className="w-3 h-3 text-slate-400" />
-                                    <span className="text-slate-300 font-mono font-semibold">{schema}</span>
-                                    <span className="text-slate-500">({tables.length})</span>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-
-                            {isSelected && (
-                              <div className="mt-4 pt-4 border-t border-white/10 animate-in fade-in slide-in-from-top-4 duration-300">
-                                {data.sharepoint && (
-                                  <div className="mb-4 p-4 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-lg">
-                                    <div className="flex items-start gap-3">
-                                      <Share2 className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
-                                      <div className="flex-1">
-                                        <div className="text-sm font-semibold text-green-300 mb-2 flex items-center gap-2">
-                                          SharePoint Integration
-                                          <span className="text-xs px-2 py-0.5 bg-green-500/30 rounded-full">Hybrid Storage</span>
-                                        </div>
-                                        {Object.entries(data.sharepoint).map(([key, value]) => (
-                                          <div key={key} className="mb-2 last:mb-0">
-                                            <div className="text-xs font-semibold text-green-400 uppercase tracking-wide mb-0.5 flex items-center gap-1">
-                                              {key === 'references' ? (
-                                                <>
-                                                  <Database className="w-3 h-3" />
-                                                  <span>Database References</span>
-                                                </>
-                                              ) : key === 'location' ? (
-                                                <>
-                                                  <Share2 className="w-3 h-3" />
-                                                  <span>SharePoint Location</span>
-                                                </>
-                                              ) : (
-                                                <>
-                                                  <Share2 className="w-3 h-3" />
-                                                  <span>Stored in SharePoint</span>
-                                                </>
-                                              )}
-                                            </div>
-                                            <div className={`text-xs ${key === 'references' ? 'font-mono bg-green-950/50 p-2 rounded border border-green-500/20' : ''} text-green-100`}>
-                                              {value}
-                                            </div>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-                                
-                                <div className="space-y-3">
-                                  {Object.entries(data.schemas).map(([schema, tables]) => (
-                                    <div key={schema}>
-                                      <div className="text-xs font-mono font-bold text-slate-400 mb-2 uppercase tracking-wider">
-                                        {schema}
-                                      </div>
-                                      <div className="grid grid-cols-1 gap-2">
-                                        {tables.map((table) => {
-                                          const fullTableName = `${schema}.${table}`;
-                                          const isHighlighted = highlightedTable === fullTableName;
-                                          return (
-                                            <div
-                                              key={table}
-                                              className={`text-sm font-mono px-3 py-2 rounded-lg transition-all duration-300 ${
-                                                isHighlighted 
-                                                  ? 'text-white bg-gradient-to-r from-yellow-500/40 to-amber-500/40 border-2 border-yellow-400 shadow-lg' 
-                                                  : 'text-slate-300 bg-white/5 hover:bg-white/10'
-                                              }`}
-                                            >
-                                              {table}
-                                            </div>
-                                          );
-                                        })}
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {!isSelected && (
-                              <div className="mt-4 text-xs text-slate-500 italic">
-                                Click to view tables
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="max-w-7xl mx-auto mt-12 text-center">
-                <div className="inline-flex items-center gap-6 bg-white/5 backdrop-blur-md border border-white/20 rounded-2xl px-8 py-4">
-                  <div>
-                    <div className="text-3xl font-bold text-white">{Object.keys(businessConcepts).length}</div>
-                    <div className="text-sm text-slate-400">Business Concepts</div>
-                  </div>
-                  <div className="w-px h-12 bg-white/20" />
-                  <div>
-                    <div className="text-3xl font-bold text-white">{allTables.length}</div>
-                    <div className="text-sm text-slate-400">Total Tables</div>
-                  </div>
-                  <div className="w-px h-12 bg-white/20" />
-                  <div>
-                    <div className="text-3xl font-bold text-white">
-                      {new Set(allTables.map(t => t.schema)).size}
-                    </div>
-                    <div className="text-sm text-slate-400">Database Schemas</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
         };
 
-        ReactDOM.render(<DatabaseInfographic />, document.getElementById('root'));
+        let selectedConcept = null;
+        let searchTerm = '';
+        let highlightedTable = null;
+
+        function getTableCount(schemas) {
+            return Object.values(schemas).reduce((sum, tables) => sum + tables.length, 0);
+        }
+
+        function getAllTables() {
+            const tables = [];
+            Object.entries(businessConcepts).forEach(([concept, data]) => {
+                Object.entries(data.schemas).forEach(([schema, schemaTables]) => {
+                    schemaTables.forEach(table => {
+                        tables.push({ concept, schema, table, color: data.color });
+                    });
+                });
+            });
+            return tables;
+        }
+
+        function filterTables(term) {
+            if (!term) return [];
+            const allTables = getAllTables();
+            return allTables.filter(item =>
+                item.table.toLowerCase().includes(term.toLowerCase()) ||
+                item.concept.toLowerCase().includes(term.toLowerCase())
+            );
+        }
+
+        function render() {
+            const app = document.getElementById('app');
+            const allTables = getAllTables();
+            const filteredTables = filterTables(searchTerm);
+            const uniqueSchemas = new Set(allTables.map(t => t.schema));
+
+            app.innerHTML = `
+                <div class="max-w-7xl mx-auto mb-12">
+                    <div class="text-center mb-8">
+                        <h1 class="text-6xl font-bold text-white mb-4 tracking-tight">
+                            AppSpace Intranet Database Architecture
+                        </h1>
+                    </div>
+                    
+                    <div class="max-w-md mx-auto relative">
+                        <svg class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="m21 21-4.35-4.35"></path>
+                        </svg>
+                        <input
+                            id="searchInput"
+                            type="text"
+                            placeholder="Search tables or concepts..."
+                            value="${searchTerm}"
+                            class="w-full pl-12 pr-4 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all"
+                        />
+                    </div>
+                    
+                    ${searchTerm ? `
+                        <div class="mt-4 max-w-md mx-auto bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-4 max-h-96 overflow-y-auto">
+                            ${filteredTables.length > 0 ? `
+                                <div class="space-y-2">
+                                    ${filteredTables.map((item, idx) => `
+                                        <div class="search-result flex items-center justify-between p-3 bg-white/5 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+                                             data-concept="${item.concept}"
+                                             data-table="${item.schema}.${item.table}">
+                                            <div>
+                                                <div class="text-white font-medium">${item.schema}.${item.table}</div>
+                                                <div class="text-sm text-slate-400">${item.concept}</div>
+                                            </div>
+                                            <svg class="text-slate-400 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path d="m9 18 6-6-6-6"></path>
+                                            </svg>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : `
+                                <div class="text-center text-slate-400 py-4">No tables found</div>
+                            `}
+                        </div>
+                    ` : ''}
+                </div>
+                
+                <div class="max-w-7xl mx-auto">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        ${Object.entries(businessConcepts).map(([concept, data]) => {
+                            const tableCount = getTableCount(data.schemas);
+                            const isSelected = selectedConcept === concept;
+                            
+                            return `
+                                <div class="concept-card group relative bg-gradient-to-br ${data.gradient} p-[2px] rounded-2xl cursor-pointer transform transition-all duration-300 hover:scale-105 ${isSelected ? 'scale-105 shadow-2xl' : 'hover:shadow-xl'}"
+                                     id="concept-${concept}"
+                                     data-concept="${concept}">
+                                    <div class="bg-slate-900 rounded-2xl p-6 h-full relative overflow-hidden">
+                                        <div class="absolute inset-0 opacity-5">
+                                            <div class="absolute inset-0" style="background-image: radial-gradient(circle at 2px 2px, ${data.color} 1px, transparent 0); background-size: 32px 32px;"></div>
+                                        </div>
+                                        
+                                        <div class="relative z-10">
+                                            <div class="flex items-start justify-between mb-4">
+                                                <div class="flex items-center gap-2">
+                                                    <div class="p-3 bg-gradient-to-br ${data.gradient} rounded-xl text-3xl">
+                                                        ${data.icon}
+                                                    </div>
+                                                    ${data.sharepoint ? `
+                                                        <div class="p-1.5 bg-green-500/20 border border-green-500/30 rounded-lg" title="SharePoint Integration">
+                                                            <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <circle cx="18" cy="5" r="3"></circle>
+                                                                <circle cx="6" cy="12" r="3"></circle>
+                                                                <circle cx="18" cy="19" r="3"></circle>
+                                                                <path d="m8.59 13.51 6.83 3.98"></path>
+                                                                <path d="m15.41 6.51-6.82 3.98"></path>
+                                                            </svg>
+                                                        </div>
+                                                    ` : ''}
+                                                </div>
+                                                <div class="px-3 py-1 rounded-full text-sm font-bold ${isSelected ? 'bg-white text-slate-900' : 'bg-white/10 text-white'}">
+                                                    ${tableCount} tables
+                                                </div>
+                                            </div>
+                                            
+                                            <h3 class="text-xl font-bold text-white mb-3">${concept}</h3>
+                                            
+                                            <div class="space-y-2">
+                                                ${Object.entries(data.schemas).map(([schema, tables]) => `
+                                                    <div class="text-sm">
+                                                        <div class="flex items-center gap-2 mb-1">
+                                                            <svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                                                                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                                                            </svg>
+                                                            <span class="text-slate-300 font-mono font-semibold">${schema}</span>
+                                                            <span class="text-slate-500">(${tables.length})</span>
+                                                        </div>
+                                                    </div>
+                                                `).join('')}
+                                            </div>
+                                            
+                                            ${isSelected ? `
+                                                <div class="mt-4 pt-4 border-t border-white/10 animate-in">
+                                                    ${data.sharepoint ? `
+                                                        <div class="mb-4 p-4 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30 rounded-lg">
+                                                            <div class="flex items-start gap-3">
+                                                                <svg class="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <circle cx="18" cy="5" r="3"></circle>
+                                                                    <circle cx="6" cy="12" r="3"></circle>
+                                                                    <circle cx="18" cy="19" r="3"></circle>
+                                                                    <path d="m8.59 13.51 6.83 3.98"></path>
+                                                                    <path d="m15.41 6.51-6.82 3.98"></path>
+                                                                </svg>
+                                                                <div class="flex-1">
+                                                                    <div class="text-sm font-semibold text-green-300 mb-2 flex items-center gap-2">
+                                                                        SharePoint Integration
+                                                                        <span class="text-xs px-2 py-0.5 bg-green-500/30 rounded-full">Hybrid Storage</span>
+                                                                    </div>
+                                                                    ${Object.entries(data.sharepoint).map(([key, value]) => `
+                                                                        <div class="mb-2 last:mb-0">
+                                                                            <div class="text-xs font-semibold text-green-400 uppercase tracking-wide mb-0.5">
+                                                                                ${key === 'references' ? '🔗 Database References' : key === 'location' ? '📍 SharePoint Location' : '☁️ Stored in SharePoint'}
+                                                                            </div>
+                                                                            <div class="text-xs ${key === 'references' ? 'font-mono bg-green-950/50 p-2 rounded border border-green-500/20' : ''} text-green-100">
+                                                                                ${value}
+                                                                            </div>
+                                                                        </div>
+                                                                    `).join('')}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ` : ''}
+                                                    
+                                                    <div class="space-y-3">
+                                                        ${Object.entries(data.schemas).map(([schema, tables]) => `
+                                                            <div>
+                                                                <div class="text-xs font-mono font-bold text-slate-400 mb-2 uppercase tracking-wider">${schema}</div>
+                                                                <div class="grid grid-cols-1 gap-2">
+                                                                    ${tables.map(table => {
+                                                                        const fullTableName = `${schema}.${table}`;
+                                                                        const isHighlighted = highlightedTable === fullTableName;
+                                                                        return `
+                                                                            <div class="text-sm font-mono px-3 py-2 rounded-lg transition-all duration-300 ${isHighlighted ? 'text-white bg-gradient-to-r from-yellow-500/40 to-amber-500/40 border-2 border-yellow-400 shadow-lg' : 'text-slate-300 bg-white/5 hover:bg-white/10'}">
+                                                                                ${table}
+                                                                            </div>
+                                                                        `;
+                                                                    }).join('')}
+                                                                </div>
+                                                            </div>
+                                                        `).join('')}
+                                                    </div>
+                                                </div>
+                                            ` : `
+                                                <div class="mt-4 text-xs text-slate-500 italic">
+                                                    Click to view tables
+                                                </div>
+                                            `}
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+                
+                <div class="max-w-7xl mx-auto mt-12 text-center">
+                    <div class="inline-flex items-center gap-6 bg-white/5 backdrop-blur-md border border-white/20 rounded-2xl px-8 py-4">
+                        <div>
+                            <div class="text-3xl font-bold text-white">${Object.keys(businessConcepts).length}</div>
+                            <div class="text-sm text-slate-400">Business Concepts</div>
+                        </div>
+                        <div class="w-px h-12 bg-white/20"></div>
+                        <div>
+                            <div class="text-3xl font-bold text-white">${allTables.length}</div>
+                            <div class="text-sm text-slate-400">Total Tables</div>
+                        </div>
+                        <div class="w-px h-12 bg-white/20"></div>
+                        <div>
+                            <div class="text-3xl font-bold text-white">${uniqueSchemas.size}</div>
+                            <div class="text-sm text-slate-400">Database Schemas</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Add event listeners
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    searchTerm = e.target.value;
+                    render();
+                    // Restore focus after render
+                    const newSearchInput = document.getElementById('searchInput');
+                    if (newSearchInput) {
+                        newSearchInput.focus();
+                        // Restore cursor position
+                        newSearchInput.setSelectionRange(searchTerm.length, searchTerm.length);
+                    }
+                });
+            }
+
+            document.querySelectorAll('.concept-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const concept = card.dataset.concept;
+                    selectedConcept = selectedConcept === concept ? null : concept;
+                    highlightedTable = null;
+                    render();
+                });
+            });
+
+            document.querySelectorAll('.search-result').forEach(result => {
+                result.addEventListener('click', () => {
+                    const concept = result.dataset.concept;
+                    const table = result.dataset.table;
+                    selectedConcept = concept;
+                    highlightedTable = table;
+                    searchTerm = '';
+                    render();
+                    
+                    setTimeout(() => {
+                        const element = document.getElementById(`concept-${concept}`);
+                        if (element) {
+                            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    }, 100);
+                });
+            });
+        }
+
+        // Initial render
+        render();
     </script>
 </body>
 </html>
