@@ -58,7 +58,7 @@
             const lines = mermaidText.split('\n');
             let currentTable = null;
             let columns = [];
-            const relationships = {};
+            const relationshipMap = {};
 
             // First pass: extract tables and columns
             for (let i = 0; i < lines.length; i++) {
@@ -111,21 +111,25 @@
             // Second pass: extract relationships
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i].trim();
-                const relMatch = line.match(/"([^"]+)"\s+\|[o\-]+\|{([^:]+):\s*"([^"]+)"/);
+                // Match relationship patterns like: "dbo.Table1" ||--|{ "dbo.Table2": "Column"
+                const relMatch = line.match(/"([^"]+)"\s+\|[o\-]+\|[{\|]\s*"([^"]+)":\s*"([^"]+)"/);
                 if (relMatch) {
-                    const [, fromTable, , toTable] = relMatch;
+                    const [, fromTable, toTable, toColumn] = relMatch;
                     
                     if (schemas[fromTable]) {
-                        // Extract the FK column from fromTable's columns
-                        const fkColumn = schemas[fromTable].columns.find(col => 
-                            col.constraints.includes('FK') && toTable.includes(col.name.replace('_id', ''))
+                        // Find FK column in fromTable that references toTable
+                        const fkColumns = schemas[fromTable].columns.filter(col => 
+                            col.constraints.includes('FK')
                         );
                         
-                        if (fkColumn) {
-                            schemas[fromTable].relationships.push({
-                                from: fkColumn.name,
-                                to: toTable
-                            });
+                        for (const fkCol of fkColumns) {
+                            // Create relationship entry
+                            const relationship = {
+                                from: fkCol.name,
+                                to: `${toTable}.${toColumn}`
+                            };
+                            
+                            schemas[fromTable].relationships.push(relationship);
                         }
                     }
                 }
@@ -660,7 +664,7 @@
                                                                         ${rel.to}
                                                                     </span>
                                                                 ` : `
-                                                                    <span class="table-link font-mono text-sm text-blue-300 hover:text-blue-200" onclick="event.stopPropagation(); showTableModal('${targetTable.split('.')[0]}', '${targetTable.split('.')[1]}')">${rel.to}</span>
+                                                                    <span class="table-link font-mono text-sm text-blue-300 hover:text-blue-200" onclick="event.stopPropagation(); navigateToTable('${rel.to}')">${rel.to}</span>
                                                                 `}
                                                             </div>
                                                         </div>
@@ -738,6 +742,27 @@
             const modalRoot = document.getElementById('modal-root');
             modalRoot.innerHTML = modalHtml;
             currentModal = document.getElementById('table-modal');
+        }
+
+        function navigateToTable(fullTableName) {
+            // Handle both "schema.Table" and "Table.Column" formats
+            const parts = fullTableName.split('.');
+            
+            if (parts.length >= 2) {
+                // Check if first part is a schema name (dbo, Audit, HangFire, ContentStorage)
+                const knownSchemas = ['dbo', 'Audit', 'HangFire', 'ContentStorage'];
+                
+                if (knownSchemas.includes(parts[0])) {
+                    // Format: schema.Table or schema.Table.Column
+                    showTableModal(parts[0], parts[1]);
+                } else {
+                    // Format: Table.Column, assume dbo schema
+                    showTableModal('dbo', parts[0]);
+                }
+            } else {
+                // Just table name, assume dbo
+                showTableModal('dbo', parts[0]);
+            }
         }
 
         function closeModal() {
