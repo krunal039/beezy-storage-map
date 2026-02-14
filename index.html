@@ -13,12 +13,181 @@
             from { opacity: 0; transform: translateY(-10px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        .modal-backdrop {
+            animation: backdropFadeIn 0.2s ease-in;
+        }
+        @keyframes backdropFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .modal-content {
+            animation: modalSlideIn 0.3s ease-out;
+        }
+        @keyframes modalSlideIn {
+            from { transform: scale(0.95) translateY(-20px); opacity: 0; }
+            to { transform: scale(1) translateY(0); opacity: 1; }
+        }
+        .table-link {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .table-link:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
     <div id="app" class="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-8"></div>
+    <div id="modal-root"></div>
     
     <script>
+        // Parse schema from the Mermaid diagram - this will be loaded from your GitHub file
+        async function loadSchema() {
+            try {
+                const response = await fetch('https://raw.githubusercontent.com/krunal039/beezy-storage-map/refs/heads/main/db.md');
+                const text = await response.text();
+                return parseSchemaFromMermaid(text);
+            } catch (error) {
+                console.error('Failed to load schema:', error);
+                return {};
+            }
+        }
+
+        function parseSchemaFromMermaid(mermaidText) {
+            const schemas = {};
+            const lines = mermaidText.split('\n');
+            let currentTable = null;
+            let columns = [];
+            const relationships = {};
+
+            // First pass: extract tables and columns
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                
+                // Table definition: "schema.TableName" {
+                if (line.match(/^"[^"]+"\s*{$/)) {
+                    if (currentTable && columns.length > 0) {
+                        const [schema, name] = currentTable.split('.');
+                        schemas[currentTable] = {
+                            schema,
+                            name,
+                            description: getTableDescription(name),
+                            columns: [...columns],
+                            relationships: []
+                        };
+                    }
+                    currentTable = line.match(/"([^"]+)"/)[1];
+                    columns = [];
+                }
+                // Column definition
+                else if (currentTable && line.match(/^\w+\s+\w+/)) {
+                    const match = line.match(/^(\w+)\s+([^\s]+)\s*"([^"]*)"/);
+                    if (match) {
+                        const [, type, name, constraints] = match;
+                        columns.push({
+                            name,
+                            type,
+                            constraints: constraints || ''
+                        });
+                    }
+                }
+                // End of table
+                else if (line === '}' && currentTable) {
+                    if (columns.length > 0) {
+                        const [schema, name] = currentTable.split('.');
+                        schemas[currentTable] = {
+                            schema,
+                            name,
+                            description: getTableDescription(name),
+                            columns: [...columns],
+                            relationships: []
+                        };
+                    }
+                    currentTable = null;
+                    columns = [];
+                }
+            }
+
+            // Second pass: extract relationships
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                const relMatch = line.match(/"([^"]+)"\s+\|[o\-]+\|{([^:]+):\s*"([^"]+)"/);
+                if (relMatch) {
+                    const [, fromTable, , toTable] = relMatch;
+                    
+                    if (schemas[fromTable]) {
+                        // Extract the FK column from fromTable's columns
+                        const fkColumn = schemas[fromTable].columns.find(col => 
+                            col.constraints.includes('FK') && toTable.includes(col.name.replace('_id', ''))
+                        );
+                        
+                        if (fkColumn) {
+                            schemas[fromTable].relationships.push({
+                                from: fkColumn.name,
+                                to: toTable
+                            });
+                        }
+                    }
+                }
+            }
+
+            return schemas;
+        }
+
+        function getTableDescription(tableName) {
+            const descriptions = {
+                'Activity': 'Core activity/post table storing all content in the intranet',
+                'User': 'User profile information and authentication data',
+                'Group': 'Community/workspace definitions and settings',
+                'Channel': 'Content distribution channels within groups',
+                'Comment': 'User comments on activities',
+                'ActivityTranslation': 'Multi-language content for activities, references SharePoint items',
+                'Attachment': 'File attachments with SharePoint integration',
+                'GroupPage': 'SharePoint page definitions for groups',
+                'Notification': 'User notification messages',
+                'HashTag': 'Hashtags for content categorization',
+                'ActivityLikes': 'Like tracking for activities',
+                'CommentLikes': 'Like tracking for comments',
+                'Bookmarks': 'User bookmarked activities',
+                'Followers': 'Activity follower relationships',
+                'SiteCollection': 'SharePoint site collection configuration',
+                'LocalEntity': 'Tenant/organization entity configuration',
+                'Audience': 'Audience segmentation definitions',
+                'DomainGroup': 'Active Directory group references',
+                'HeroBlock': 'Hero banner/widget content',
+                'App': 'Application registry and metadata',
+                'MenuNode': 'Navigation menu structure',
+                'CommunicationPageDetail': 'Editorial page settings and metadata',
+                'Term': 'Taxonomy term definitions',
+                'TermSet': 'Taxonomy term set groups',
+                'EventLog': 'Audit trail for system events',
+                'ActivityVersion': 'Version history for activities',
+                'ActivityMessageContent': 'Message content for activities',
+                'ActivityMetadataProperty': 'Custom metadata properties for activities',
+                'GroupFollower': 'Group membership and follower tracking',
+                'GroupInvitation': 'Pending group invitations',
+                'GroupTools': 'Tools and apps configured for groups',
+                'ChannelCategory': 'Channel categorization',
+                'ChannelFollow': 'User channel subscriptions',
+                'Layout': 'Page layout definitions',
+                'PageTemplate': 'Page template configurations',
+                'WebHookConnector': 'Webhook connector configurations',
+                'Rule': 'Audience targeting rules',
+                'Skills': 'User skills master list',
+                'UserSkills': 'Skills associated with users',
+                'Language': 'Supported languages configuration',
+                'HeroBlockTemplate': 'Hero block template definitions',
+                'HeroTemplate': 'Hero section templates',
+                'OrganizationalUnit': 'Organizational unit hierarchy',
+                'DataClassification': 'Data classification levels and settings'
+            };
+            return descriptions[tableName] || `${tableName} table data`;
+        }
+
+        let tableSchemas = {};
+
+        
+
         const businessConcepts = {
             'Content & Publishing': {
                 icon: '📄',
@@ -214,6 +383,7 @@
         let selectedConcept = null;
         let searchTerm = '';
         let highlightedTable = null;
+        let currentModal = null;
 
         function getTableCount(schemas) {
             return Object.values(schemas).reduce((sum, tables) => sum + tables.length, 0);
@@ -240,6 +410,198 @@
             );
         }
 
+        function showTableModal(schema, tableName) {
+            const fullName = `${schema}.${tableName}`;
+            const tableInfo = tableSchemas[fullName];
+            
+            if (!tableInfo) {
+                // Show basic modal for tables without detailed schema
+                showBasicTableModal(schema, tableName);
+                return;
+            }
+
+            const modalHtml = `
+                <div class="fixed inset-0 z-50 overflow-y-auto modal-backdrop" id="table-modal">
+                    <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+                        <div class="fixed inset-0 transition-opacity bg-slate-900 bg-opacity-90" onclick="closeModal()"></div>
+                        
+                        <div class="inline-block w-full max-w-4xl overflow-hidden text-left align-middle transition-all transform bg-slate-800 rounded-2xl shadow-2xl modal-content relative">
+                            <!-- Close button -->
+                            <button onclick="closeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors z-10">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+
+                            <!-- Header -->
+                            <div class="px-8 py-6 bg-gradient-to-r from-purple-600 to-blue-600">
+                                <div class="flex items-center gap-3">
+                                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                                        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                                    </svg>
+                                    <div>
+                                        <h2 class="text-3xl font-bold text-white">${tableName}</h2>
+                                        <p class="text-sm text-blue-100 font-mono">${schema} schema</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="px-8 py-6 max-h-[70vh] overflow-y-auto">
+                                <!-- Description -->
+                                <div class="mb-6 p-4 bg-slate-700/50 rounded-lg border border-slate-600">
+                                    <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wide mb-2">Purpose</h3>
+                                    <p class="text-white">${tableInfo.description || 'No description available'}</p>
+                                </div>
+
+                                <!-- Columns -->
+                                <div class="mb-6">
+                                    <h3 class="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path d="M3 6h18M3 12h18M3 18h18"></path>
+                                        </svg>
+                                        Columns (${tableInfo.columns.length})
+                                    </h3>
+                                    <div class="space-y-2">
+                                        ${tableInfo.columns.map(col => `
+                                            <div class="flex items-center gap-3 p-3 bg-slate-700/30 rounded-lg border border-slate-600/50 hover:bg-slate-700/50 transition-colors">
+                                                <div class="flex-1">
+                                                    <div class="flex items-center gap-2">
+                                                        <span class="font-mono text-white font-semibold">${col.name}</span>
+                                                        ${col.constraints ? `
+                                                            <span class="px-2 py-0.5 text-xs font-bold rounded ${
+                                                                col.constraints.includes('PK') ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30' :
+                                                                col.constraints.includes('FK') ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' :
+                                                                'bg-slate-600/50 text-slate-300'
+                                                            }">${col.constraints}</span>
+                                                        ` : ''}
+                                                    </div>
+                                                    <div class="text-sm text-slate-400 font-mono mt-1">${col.type}</div>
+                                                </div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+
+                                <!-- Relationships -->
+                                ${tableInfo.relationships.length > 0 ? `
+                                    <div class="mb-6">
+                                        <h3 class="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+                                            </svg>
+                                            Relationships (${tableInfo.relationships.length})
+                                        </h3>
+                                        <div class="space-y-2">
+                                            ${tableInfo.relationships.map(rel => {
+                                                const isSharePoint = rel.to.includes('SharePoint');
+                                                const targetTable = rel.to.split('.')[0] + '.' + rel.to.split('.')[1];
+                                                return `
+                                                    <div class="flex items-center gap-3 p-3 bg-slate-700/30 rounded-lg border ${isSharePoint ? 'border-green-500/30' : 'border-blue-500/30'}">
+                                                        <div class="flex-1">
+                                                            <div class="flex items-center gap-2 flex-wrap">
+                                                                <span class="font-mono text-sm text-slate-300">${rel.from}</span>
+                                                                <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                                                                </svg>
+                                                                ${isSharePoint ? `
+                                                                    <span class="flex items-center gap-1 px-2 py-1 bg-green-500/20 text-green-300 rounded text-sm font-mono border border-green-500/30">
+                                                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <circle cx="18" cy="5" r="3"></circle>
+                                                                            <circle cx="6" cy="12" r="3"></circle>
+                                                                            <circle cx="18" cy="19" r="3"></circle>
+                                                                            <path d="m8.59 13.51 6.83 3.98"></path>
+                                                                            <path d="m15.41 6.51-6.82 3.98"></path>
+                                                                        </svg>
+                                                                        ${rel.to}
+                                                                    </span>
+                                                                ` : `
+                                                                    <span class="table-link font-mono text-sm text-blue-300 hover:text-blue-200" onclick="event.stopPropagation(); showTableModal('${targetTable.split('.')[0]}', '${targetTable.split('.')[1]}')">${rel.to}</span>
+                                                                `}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                `;
+                                            }).join('')}
+                                        </div>
+                                    </div>
+                                ` : ''}
+                            </div>
+
+                            <!-- Footer -->
+                            <div class="px-8 py-4 bg-slate-700/50 border-t border-slate-600">
+                                <button onclick="closeModal()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-colors">
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            const modalRoot = document.getElementById('modal-root');
+            modalRoot.innerHTML = modalHtml;
+            currentModal = document.getElementById('table-modal');
+        }
+
+        function showBasicTableModal(schema, tableName) {
+            const modalHtml = `
+                <div class="fixed inset-0 z-50 overflow-y-auto modal-backdrop" id="table-modal">
+                    <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+                        <div class="fixed inset-0 transition-opacity bg-slate-900 bg-opacity-90" onclick="closeModal()"></div>
+                        
+                        <div class="inline-block w-full max-w-2xl overflow-hidden text-left align-middle transition-all transform bg-slate-800 rounded-2xl shadow-2xl modal-content relative">
+                            <button onclick="closeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors z-10">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+
+                            <div class="px-8 py-6 bg-gradient-to-r from-purple-600 to-blue-600">
+                                <div class="flex items-center gap-3">
+                                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                                        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                                    </svg>
+                                    <div>
+                                        <h2 class="text-3xl font-bold text-white">${tableName}</h2>
+                                        <p class="text-sm text-blue-100 font-mono">${schema} schema</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="px-8 py-6">
+                                <div class="p-4 bg-blue-500/20 border border-blue-500/30 rounded-lg">
+                                    <p class="text-blue-200">
+                                        <strong>Table:</strong> ${schema}.${tableName}
+                                    </p>
+                                    <p class="text-blue-300 text-sm mt-2">
+                                        Detailed schema information is being compiled. Check back soon for columns and relationships.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="px-8 py-4 bg-slate-700/50 border-t border-slate-600">
+                                <button onclick="closeModal()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-colors">
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            const modalRoot = document.getElementById('modal-root');
+            modalRoot.innerHTML = modalHtml;
+            currentModal = document.getElementById('table-modal');
+        }
+
+        function closeModal() {
+            const modalRoot = document.getElementById('modal-root');
+            modalRoot.innerHTML = '';
+            currentModal = null;
+        }
+
         function render() {
             const app = document.getElementById('app');
             const allTables = getAllTables();
@@ -252,6 +614,7 @@
                         <h1 class="text-6xl font-bold text-white mb-4 tracking-tight">
                             AppSpace Intranet Database Architecture
                         </h1>
+                        <p class="text-slate-300 text-lg">Click any table name to view detailed schema information</p>
                     </div>
                     
                     <div class="max-w-md mx-auto relative">
@@ -389,7 +752,8 @@
                                                                         const fullTableName = `${schema}.${table}`;
                                                                         const isHighlighted = highlightedTable === fullTableName;
                                                                         return `
-                                                                            <div class="text-sm font-mono px-3 py-2 rounded-lg transition-all duration-300 ${isHighlighted ? 'text-white bg-gradient-to-r from-yellow-500/40 to-amber-500/40 border-2 border-yellow-400 shadow-lg' : 'text-slate-300 bg-white/5 hover:bg-white/10'}">
+                                                                            <div class="table-link text-sm font-mono px-3 py-2 rounded-lg transition-all duration-300 ${isHighlighted ? 'text-white bg-gradient-to-r from-yellow-500/40 to-amber-500/40 border-2 border-yellow-400 shadow-lg' : 'text-slate-300 bg-white/5 hover:bg-white/10'}"
+                                                                                 onclick="event.stopPropagation(); showTableModal('${schema}', '${table}')">
                                                                                 ${table}
                                                                             </div>
                                                                         `;
@@ -438,18 +802,19 @@
                 searchInput.addEventListener('input', (e) => {
                     searchTerm = e.target.value;
                     render();
-                    // Restore focus after render
                     const newSearchInput = document.getElementById('searchInput');
                     if (newSearchInput) {
                         newSearchInput.focus();
-                        // Restore cursor position
                         newSearchInput.setSelectionRange(searchTerm.length, searchTerm.length);
                     }
                 });
             }
 
             document.querySelectorAll('.concept-card').forEach(card => {
-                card.addEventListener('click', () => {
+                card.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('table-link') || e.target.closest('.table-link')) {
+                        return;
+                    }
                     const concept = card.dataset.concept;
                     selectedConcept = selectedConcept === concept ? null : concept;
                     highlightedTable = null;
@@ -476,8 +841,18 @@
             });
         }
 
+        // Handle ESC key to close modal
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && currentModal) {
+                closeModal();
+            }
+        });
+
         // Initial render
-        render();
+        loadSchema().then(schemas => {
+            tableSchemas = schemas;
+            render();
+        });
     </script>
 </body>
 </html>
